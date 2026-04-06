@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Full CX — Mutant Sales Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh}
+.header{background:linear-gradient(135deg,#1e1b4b,#312e81);padding:20px 24px;border-bottom:1px solid #3730a3}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.header h1{font-size:22px;font-weight:800;color:#fff}
+.header span{font-size:12px;color:#a5b4fc}
+.kpis{max-width:1400px;margin:20px auto;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:0 24px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(3,1fr)}}
+.kpi{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155;text-align:center}
+.kpi-value{font-size:28px;font-weight:800;margin:4px 0}
+.kpi-label{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px}
+.kpi-sub{font-size:11px;color:#64748b;margin-top:2px}
+
+.container{max-width:1400px;margin:0 auto;padding:20px 24px}
+.section-title{font-size:16px;font-weight:700;margin:24px 0 12px;display:flex;align-items:center;gap:8px}
+.section-title .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:30px}
+@media(max-width:1000px){.kanban{grid-template-columns:repeat(2,1fr)}}
+.kanban-col{background:#1e293b;border-radius:14px;padding:14px;border:1px solid #334155;min-height:200px}
+.kanban-header{font-size:13px;font-weight:700;padding:8px 10px;border-radius:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.kanban-header .count{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+
+.card{background:#0f172a;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #334155;cursor:pointer;transition:.2s}
+.card:hover{border-color:#4f46e5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.card-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.card-exec{font-size:11px;color:#94a3b8}
+.card-status{font-size:10px;color:#64748b;margin-top:6px;line-height:1.4}
+.card-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.card-date{font-size:10px;color:#94a3b8;background:#1e293b;padding:2px 8px;border-radius:4px}
+
+.temp{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:700;text-transform:uppercase}
+.temp-quente{background:#dc2626;color:#fff}
+.temp-morno{background:#d97706;color:#fff}
+.temp-plano{background:#2563eb;color:#fff}
+
+/* Timeline */
+.timeline{background:#1e293b;border-radius:14px;padding:20px;border:1px solid #334155;margin-bottom:24px}
+.timeline-title{font-size:14px;font-weight:700;margin-bottom:14px;color:#fff}
+.tl-row{display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1e293b30}
+.tl-date{width:60px;font-size:12px;font-weight:700;color:#4f46e5;flex-shrink:0}
+.tl-items{flex:1}
+.tl-item{font-size:12px;color:#cbd5e1;padding:2px 0;display:flex;align-items:center;gap:6px}
+.tl-item .emp{font-weight:700;color:#fff}
+.tl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* Exec summary */
+.exec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:900px){.exec-grid{grid-template-columns:1fr}}
+.exec-card{background:#1e293b;border-radius:12px;padding:16px;border:1px solid #334155}
+.exec-name{font-size:14px;font-weight:700;color:#fff;margin-bottom:8px}
+.exec-deals{font-size:12px;color:#94a3b8}
+.exec-bar{height:6px;background:#334155;border-radius:3px;margin-top:8px;overflow:hidden}
+.exec-bar-inner{height:100%;border-radius:3px}
+
+/* Table */
+.table-wrap{background:#1e293b;border-radius:14px;padding:16px;border:1px solid #334155;overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:10px 8px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #334155}
+td{padding:10px 8px;border-bottom:1px solid #1e293b;color:#cbd5e1}
+tr:hover{background:#0f172a}
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:8px;border:1px solid #334155;background:#0f172a;color:#94a3b8;font-size:11px;font-weight:600;cursor:pointer;transition:.2s}
+.filter-btn:hover,.filter-btn.active{background:#4f46e5;color:#fff;border-color:#4f46e5}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div class="header-inner">
+<div>
+<h1>Pipeline Full CX — Gestão à Vista</h1>
+<span>Atualizado em 06/04/2026 | Head of Sales: Thiago Paretti</span>
+</div>
+<div style="display:flex;gap:8px">
+<button class="filter-btn active" onclick="filterTemp('all')">Todos</button>
+<button class="filter-btn" onclick="filterTemp('quente')">Quentes</button>
+<button class="filter-btn" onclick="filterTemp('morno')">Mornos</button>
+<button class="filter-btn" onclick="filterTemp('plano')">Plano Ataque</button>
+</div>
+</div>
+</div>
+
+<div class="kpis" id="kpis"></div>
+<div class="container">
+<div id="timeline"></div>
+<div id="kanban"></div>
+<div id="execGrid"></div>
+<div id="tableWrap"></div>
+</div>
+
+<script>
+var deals = [
+  {nome:"AEGEA",fase:"Prospect",exec:"Simone Torelli",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Duvidas retornou hoje 30/03 - Proposta 03/04",prox:"07/04"},
+  {nome:"CASAS BAHIA",fase:"Negotiation",exec:"Simone Torelli",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Proposta da RFP enviada em 02/04. Agenda 06/04 para iniciar a POC do IAM",prox:"06/04"},
+  {nome:"COGNA",fase:"Qualification",exec:"Raquel Lopes",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento - Jornada retenção",oferta:"Full",status:"Thiago na liderança e tratativas de update direto com Rouman. Reunião Sarah e Raphael para alinhamento modelo de negócio",prox:"06/04"},
+  {nome:"ITURAN",fase:"Prospect",exec:"Fernando Araujo",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Reunião com CTO agendada para 07/04 para apresentar tecnicamente o IAM",prox:"07/04"},
+  {nome:"MOVIDA",fase:"Prospect",exec:"Simone Torelli",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Reunião presencial realizada em 02/04. Responder com detalhamento da análise por saída pro ATH. Abrir iniciativa do projeto de jornada informativa e caução com a URA DTMF e o projeto do IAM para jornada de cancelamento",prox:"07/04"},
+  {nome:"TOO SEGUROS",fase:"Negotiation",exec:"Paretti",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Pegar com o Altivo último status do projeto e assumir a cadência da negociação",prox:"06/04"},
+  {nome:"YDUQS",fase:"Negotiation",exec:"Paretti",temp:"quente",vertical:"Full Outsourcing",projeto:"Full Atendimento - Cancelamento",oferta:"Full",status:"Formalizado para o Jucie o novo simulador em 02/04, novo FUP em 06/04 para garantir que está tudo ok e seguir com compras",prox:"06/04"},
+  {nome:"ALELO",fase:"Prospect",exec:"Raquel Lopes",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Mudança de estrutura, Julio sairá do circuito, pediu alguns dias",prox:"13/04"},
+  {nome:"CIELO",fase:"Prospect",exec:"Simone Torelli",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Apresentação presencial agendada com o COO - Edu Lemos em 13/04",prox:"13/04"},
+  {nome:"RODOBENS",fase:"Prospect",exec:"Raquel Lopes",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Outsourcing",oferta:"Full",status:"Atuais CSU e Funchal. Reunião com Dani, superintendente. Falta passar multa",prox:"08/04"},
+  {nome:"GOL",fase:"Prospect",exec:"Cezar Magalhães",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Com a saída do Posi precisamos marcar agenda com o Marcos Faria. Puxar reunião ASAP",prox:"07/04"},
+  {nome:"PREVENT SENIOR",fase:"Prospect",exec:"Fernando Araujo",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"FUP e apresentação enviada em 16/03, aguardar retorno, novo FUP 07/04",prox:"07/04"},
+  {nome:"VIBRA",fase:"Prospect",exec:"Cezar Magalhães",temp:"morno",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Reunião agendada 08/04",prox:"08/04"},
+  {nome:"TELEFONICA",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"CRUZEIRO DO SUL",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"HAPVIDA NDI",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"RIACHUELO",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"SEM PARAR",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"PREVENT SENIOR",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"ANIMA EDUCAÇÃO",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"BANCO PAN",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"GOL",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"TENDA",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"AZUL",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"CNU",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"99APP",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"LOCALIZA",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"ARCO EDUCAÇÃO",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"ZE DELIVERY",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"SIMPALA",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"MARY KAY",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"VERISURE",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"VIASAT",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"},
+  {nome:"UNIDAS",fase:"Prospect",exec:"Paretti",temp:"plano",vertical:"Full Outsourcing",projeto:"Full Atendimento",oferta:"Full",status:"Marcar agenda e abrir oportunidade",prox:"09/04"}
+];
+
+var currentFilter='all';
+
+function filterTemp(t){
+  currentFilter=t;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  event.target.classList.add('active');
+  render();
+}
+
+function filtered(){
+  if(currentFilter==='all') return deals;
+  return deals.filter(function(d){return d.temp===currentFilter});
+}
+
+function render(){
+  var f=filtered();
+  // KPIs
+  var quentes=deals.filter(function(d){return d.temp==='quente'}).length;
+  var mornos=deals.filter(function(d){return d.temp==='morno'}).length;
+  var plano=deals.filter(function(d){return d.temp==='plano'}).length;
+  var nego=deals.filter(function(d){return d.fase==='Negotiation'}).length;
+  var hoje=deals.filter(function(d){return d.prox==='06/04'}).length;
+  document.getElementById('kpis').innerHTML=
+    '<div class="kpi"><div class="kpi-label">Total Deals</div><div class="kpi-value" style="color:#a5b4fc">'+deals.length+'</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Quentes</div><div class="kpi-value" style="color:#ef4444">'+quentes+'</div><div class="kpi-sub">Prioridade máxima</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Mornos</div><div class="kpi-value" style="color:#f59e0b">'+mornos+'</div><div class="kpi-sub">Acompanhamento</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Plano Ataque</div><div class="kpi-value" style="color:#3b82f6">'+plano+'</div><div class="kpi-sub">Abrir oportunidade</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Em Negociação</div><div class="kpi-value" style="color:#10b981">'+nego+'</div><div class="kpi-sub">Próximos do close</div></div>'+
+    '<div class="kpi"><div class="kpi-label">Ações Hoje</div><div class="kpi-value" style="color:#f43f5e">'+hoje+'</div><div class="kpi-sub">06/04/2026</div></div>';
+
+  // Timeline - next 7 days
+  var dates={};
+  f.forEach(function(d){
+    if(!dates[d.prox]) dates[d.prox]=[];
+    dates[d.prox].push(d);
+  });
+  var sortedDates=Object.keys(dates).sort(function(a,b){
+    var pa=a.split('/'),pb=b.split('/');
+    return (parseInt(pa[1])*100+parseInt(pa[0]))-(parseInt(pb[1])*100+parseInt(pb[0]));
+  });
+  var tlHtml='<div class="timeline"><div class="timeline-title">Próximas Ações</div>';
+  sortedDates.forEach(function(dt){
+    var isToday=dt==='06/04';
+    tlHtml+='<div class="tl-row"><div class="tl-date" style="'+(isToday?'color:#f43f5e;font-weight:800':'')+'">'+dt+(isToday?' HOJE':'')+'</div><div class="tl-items">';
+    dates[dt].forEach(function(d){
+      var dotColor=d.temp==='quente'?'#ef4444':d.temp==='morno'?'#f59e0b':'#3b82f6';
+      tlHtml+='<div class="tl-item"><span class="tl-dot" style="background:'+dotColor+'"></span><span class="emp">'+d.nome+'</span> <span style="color:#64748b">'+d.exec+'</span> — '+d.status.substring(0,80)+(d.status.length>80?'...':'')+'</div>';
+    });
+    tlHtml+='</div></div>';
+  });
+  tlHtml+='</div>';
+  document.getElementById('timeline').innerHTML=tlHtml;
+
+  // Kanban by fase
+  var fases={Negotiation:[],Qualification:[],Prospect:[]};
+  var planoAtaque=[];
+  f.forEach(function(d){
+    if(d.temp==='plano'){planoAtaque.push(d);return}
+    if(fases[d.fase]) fases[d.fase].push(d);
+    else fases[d.fase]=[d];
+  });
+
+  var kanbanHtml='<div class="kanban">';
+  // Negotiation
+  kanbanHtml+='<div class="kanban-col"><div class="kanban-header" style="background:#065f46;color:#6ee7b7">Negotiation <span class="count" style="background:#047857;color:#fff">'+fases.Negotiation.length+'</span></div>';
+  fases.Negotiation.forEach(function(d){kanbanHtml+=cardHtml(d)});
+  kanbanHtml+='</div>';
+  // Qualification
+  kanbanHtml+='<div class="kanban-col"><div class="kanban-header" style="background:#7c2d12;color:#fdba74">Qualification <span class="count" style="background:#9a3412;color:#fff">'+fases.Qualification.length+'</span></div>';
+  fases.Qualification.forEach(function(d){kanbanHtml+=cardHtml(d)});
+  kanbanHtml+='</div>';
+  // Prospect (quente+morno)
+  var prospectActive=fases.Prospect.filter(function(d){return d.temp!=='plano'});
+  kanbanHtml+='<div class="kanban-col"><div class="kanban-header" style="background:#1e3a5f;color:#93c5fd">Prospect (Ativo) <span class="count" style="background:#1d4ed8;color:#fff">'+prospectActive.length+'</span></div>';
+  prospectActive.forEach(function(d){kanbanHtml+=cardHtml(d)});
+  kanbanHtml+='</div>';
+  // Plano Ataque
+  kanbanHtml+='<div class="kanban-col"><div class="kanban-header" style="background:#1e293b;color:#94a3b8">Plano de Ataque <span class="count" style="background:#475569;color:#fff">'+planoAtaque.length+'</span></div>';
+  planoAtaque.forEach(function(d){kanbanHtml+=cardHtml(d)});
+  kanbanHtml+='</div>';
+  kanbanHtml+='</div>';
+  document.getElementById('kanban').innerHTML=kanbanHtml;
+
+  // Exec summary
+  var execs={};
+  deals.forEach(function(d){
+    if(!execs[d.exec]) execs[d.exec]={total:0,quente:0,morno:0,plano:0};
+    execs[d.exec].total++;
+    execs[d.exec][d.temp]++;
+  });
+  var execHtml='<div class="section-title">Por Executivo</div><div class="exec-grid">';
+  Object.keys(execs).sort(function(a,b){return execs[b].quente-execs[a].quente}).forEach(function(name){
+    var e=execs[name];
+    var pctQ=e.total>0?(e.quente/e.total*100):0;
+    var pctM=e.total>0?(e.morno/e.total*100):0;
+    execHtml+='<div class="exec-card"><div class="exec-name">'+name+'</div>';
+    execHtml+='<div class="exec-deals">'+e.total+' deals — <span style="color:#ef4444">'+e.quente+' quentes</span> · <span style="color:#f59e0b">'+e.morno+' mornos</span> · <span style="color:#3b82f6">'+e.plano+' plano</span></div>';
+    execHtml+='<div class="exec-bar"><div class="exec-bar-inner" style="width:'+pctQ+'%;background:#ef4444;display:inline-block"></div><div class="exec-bar-inner" style="width:'+pctM+'%;background:#f59e0b;display:inline-block"></div></div>';
+    execHtml+='</div>';
+  });
+  execHtml+='</div>';
+  document.getElementById('execGrid').innerHTML=execHtml;
+
+  // Full table
+  var tblHtml='<div class="section-title">Lista Completa</div><div class="table-wrap"><table><thead><tr><th>Empresa</th><th>Fase</th><th>Executivo</th><th>Temp.</th><th>Projeto</th><th>Status</th><th>Próx Ação</th></tr></thead><tbody>';
+  f.forEach(function(d){
+    tblHtml+='<tr><td style="font-weight:700;color:#fff">'+d.nome+'</td><td>'+d.fase+'</td><td>'+d.exec+'</td>';
+    tblHtml+='<td><span class="temp temp-'+d.temp+'">'+(d.temp==='quente'?'QUENTE':d.temp==='morno'?'MORNO':'PLANO ATAQUE')+'</span></td>';
+    tblHtml+='<td style="font-size:11px">'+d.projeto+'</td>';
+    tblHtml+='<td style="font-size:11px;max-width:300px">'+d.status+'</td>';
+    tblHtml+='<td style="font-weight:700;color:#a5b4fc">'+d.prox+'</td></tr>';
+  });
+  tblHtml+='</tbody></table></div>';
+  document.getElementById('tableWrap').innerHTML=tblHtml;
+}
+
+function cardHtml(d){
+  var tempClass='temp-'+d.temp;
+  var tempLabel=d.temp==='quente'?'QUENTE':d.temp==='morno'?'MORNO':'PLANO';
+  return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:start"><div class="card-name">'+d.nome+'</div><span class="temp '+tempClass+'">'+tempLabel+'</span></div>'+
+    '<div class="card-exec">'+d.exec+' · '+d.fase+'</div>'+
+    '<div class="card-status">'+d.status.substring(0,100)+(d.status.length>100?'...':'')+'</div>'+
+    '<div class="card-footer"><span class="card-date">'+d.prox+'</span></div></div>';
+}
+
+render();
+</script>
+</body>
+</html>
