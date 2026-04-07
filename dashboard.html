@@ -292,7 +292,8 @@ document.getElementById('urgente').innerHTML='<div class="stitle">⚡ Ações Ur
 urgents.map(d=>{
 var dc=d.d==='06/04'?'date-hoje':'date-amanha';
 var dl=d.d==='06/04'?'HOJE':'AMANHÃ';
-return '<div class="acao-card"><div class="acao-top"><div class="acao-nome">'+d.n+'</div><span class="badge '+(bmap[d.f]||'badge-pros')+'">'+d.f+'</span></div><div class="badge-exec">'+d.e+(d.m?' · Margem: '+d.m:'')+'</div><div class="acao-status">'+d.s+'</div><span class="acao-date '+dc+'">'+dl+' — '+d.d+'</span></div>'}).join('')+
+var idx=D.indexOf(d);
+return '<div class="acao-card"><div class="acao-top"><div class="acao-nome">'+d.n+'</div><div style="display:flex;gap:6px;align-items:center"><span class="badge '+(bmap[d.f]||'badge-pros')+'">'+d.f+'</span><button class="edit-btn" onclick="openEdit('+idx+')" title="Editar">&#9998;</button></div></div><div class="badge-exec">'+d.e+(d.m?' · Margem: '+d.m:'')+'</div><div class="acao-status">'+d.s+'</div><span class="acao-date '+dc+'">'+dl+' — '+d.d+'</span></div>'}).join('')+
 '</div></div>';
 }else{document.getElementById('urgente').innerHTML=''}
 
