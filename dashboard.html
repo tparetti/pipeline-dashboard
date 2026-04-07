@@ -96,6 +96,23 @@ tr:hover{background:rgba(0,0,0,.01)}
 .attack-card:hover{background:rgba(59,130,246,.08);border-color:var(--blue);transform:scale(1.03);box-shadow:0 4px 15px rgba(59,130,246,.15)}
 .attack-name{font-size:12px;font-weight:800;color:#1e293b}
 .attack-sub{font-size:9px;color:var(--muted);margin-top:2px}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:500px;max-width:90vw;box-shadow:0 25px 60px rgba(0,0,0,.2)}
+.modal h3{font-size:18px;font-weight:800;color:#1e293b;margin-bottom:4px}
+.modal-empresa{font-size:13px;color:#64748b;margin-bottom:20px}
+.modal label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px;margin-top:14px}
+.modal textarea,.modal input,.modal select{width:100%;padding:10px 14px;border:2px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:inherit;color:#1e293b;outline:none;transition:.2s;background:#f8fafc}
+.modal textarea:focus,.modal input:focus,.modal select:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.1)}
+.modal textarea{height:80px;resize:vertical}
+.modal-btns{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.modal-btn{padding:10px 20px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;transition:.2s;font-family:inherit}
+.modal-btn-save{background:#8b5cf6;color:#fff}
+.modal-btn-save:hover{background:#7c3aed;box-shadow:0 4px 12px rgba(139,92,246,.3)}
+.modal-btn-cancel{background:#f1f5f9;color:#64748b}
+.modal-btn-cancel:hover{background:#e2e8f0}
+.edit-btn{width:28px;height:28px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;transition:.2s;color:#94a3b8}
+.edit-btn:hover{background:#8b5cf6;color:#fff;border-color:#8b5cf6;transform:scale(1.1)}
 
 /* Exec cards */
 .exec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:24px}
@@ -141,6 +158,35 @@ tr:hover{background:rgba(0,0,0,.01)}
 </div>
 </div>
 </header>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+<div class="modal">
+<h3>Editar Deal</h3>
+<div class="modal-empresa" id="modalEmpresa"></div>
+<label>Status</label>
+<textarea id="modalStatus"></textarea>
+<label>Próxima Ação (data)</label>
+<input type="text" id="modalProx" placeholder="dd/mm">
+<label>Temperatura</label>
+<select id="modalTemp">
+<option value="quente">🔥 Quente</option>
+<option value="morno">☀️ Morno</option>
+<option value="plano">🎯 Plano Ataque</option>
+</select>
+<label>Fase</label>
+<select id="modalFase">
+<option value="Prospect">Prospect</option>
+<option value="Qualification">Qualification</option>
+<option value="Negotiation">Negotiation</option>
+<option value="Proposal">Proposal</option>
+</select>
+<div class="modal-btns">
+<button class="modal-btn modal-btn-cancel" onclick="closeModal()">Cancelar</button>
+<button class="modal-btn modal-btn-save" onclick="saveEdit()">Salvar</button>
+</div>
+</div>
+</div>
 
 <div class="kpi-grid" id="kpis"></div>
 <div class="container">
@@ -188,6 +234,29 @@ var D=[
 {n:"UNIDAS",f:"Prospect",e:"Paretti",t:"plano",p:"Full Atendimento",s:"Marcar agenda",d:"09/04"},
 {n:"GOL (Full)",f:"Prospect",e:"Paretti",t:"plano",p:"Full Atendimento",s:"Marcar agenda",d:"09/04"}
 ];
+
+// Cloud sync
+var CLOUD='https://jsonblob.com/api/jsonBlob/019d6468-a1b2-7890-abcd-pipeline00001';
+var cloudReady=false;
+// Create cloud storage
+fetch('https://jsonblob.com/api/jsonBlob',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({edits:{}})})
+.then(r=>{var loc=r.headers.get('Location')||r.headers.get('location');if(loc)CLOUD=loc;cloudReady=true;loadEdits()})
+.catch(()=>{});
+
+// Load saved edits from cloud or localStorage
+var savedEdits={};
+try{savedEdits=JSON.parse(localStorage.getItem('pipeline_edits')||'{}');}catch(e){}
+function applyEdits(){Object.keys(savedEdits).forEach(i=>{var e=savedEdits[i];if(D[i]){if(e.s)D[i].s=e.s;if(e.d)D[i].d=e.d;if(e.t)D[i].t=e.t;if(e.f)D[i].f=e.f}})}
+function saveEdits(){localStorage.setItem('pipeline_edits',JSON.stringify(savedEdits));if(cloudReady)fetch(CLOUD,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({edits:savedEdits})}).catch(()=>{})}
+function loadEdits(){if(cloudReady)fetch(CLOUD).then(r=>r.json()).then(d=>{if(d&&d.edits&&Object.keys(d.edits).length>0){savedEdits=d.edits;localStorage.setItem('pipeline_edits',JSON.stringify(savedEdits));applyEdits();render()}}).catch(()=>{})}
+applyEdits();
+
+// Edit modal
+var editIdx=-1;
+function openEdit(i){editIdx=i;var d=D[i];document.getElementById('modalEmpresa').textContent=d.n+' — '+d.e;document.getElementById('modalStatus').value=d.s;document.getElementById('modalProx').value=d.d;document.getElementById('modalTemp').value=d.t;document.getElementById('modalFase').value=d.f;document.getElementById('editModal').classList.add('show')}
+function closeModal(){document.getElementById('editModal').classList.remove('show');editIdx=-1}
+function saveEdit(){if(editIdx<0)return;D[editIdx].s=document.getElementById('modalStatus').value;D[editIdx].d=document.getElementById('modalProx').value;D[editIdx].t=document.getElementById('modalTemp').value;D[editIdx].f=document.getElementById('modalFase').value;savedEdits[editIdx]={s:D[editIdx].s,d:D[editIdx].d,t:D[editIdx].t,f:D[editIdx].f};saveEdits();closeModal();render()}
+document.getElementById('editModal').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
 var F='all';
 function setFilter(f,el){F=f;document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active');render()}
@@ -242,12 +311,13 @@ dates[dt].map(d=>{var tc=d.t==='quente'?'rgba(249,115,22,.15)':d.t==='morno'?'rg
 // Table (quentes + mornos)
 var tableDeals=f.filter(d=>d.t!=='plano');
 if(tableDeals.length>0){
-document.getElementById('tabela').innerHTML='<div class="stitle">📊 Deals Ativos</div><div class="table-wrap"><div class="table-header"><h3>Pipeline Quente + Morno</h3><span class="table-count">'+tableDeals.length+' deals</span></div><table><thead><tr><th>Empresa</th><th>Fase</th><th>Executivo</th><th>Temp.</th><th>Projeto</th><th>Status</th><th>Próx Ação</th></tr></thead><tbody>'+
+document.getElementById('tabela').innerHTML='<div class="stitle">📊 Deals Ativos</div><div class="table-wrap"><div class="table-header"><h3>Pipeline Quente + Morno</h3><span class="table-count">'+tableDeals.length+' deals</span></div><table><thead><tr><th>Empresa</th><th>Fase</th><th>Executivo</th><th>Temp.</th><th>Projeto</th><th>Status</th><th>Próx Ação</th><th></th></tr></thead><tbody>'+
 tableDeals.map(d=>{
+var idx=D.indexOf(d);
 var tc=d.t==='quente'?'t-quente':'t-morno';
 var tl=d.t==='quente'?'QUENTE':'MORNO';
 var dc=d.d==='06/04'?'date-hoje':d.d==='07/04'?'date-amanha':'date-semana';
-return '<tr><td class="td-name">'+d.n+'</td><td>'+d.f+'</td><td>'+d.e+'</td><td><span class="temp '+tc+'">'+tl+'</span></td><td style="font-size:11px">'+d.p+'</td><td style="font-size:11px;max-width:280px">'+d.s+'</td><td><span class="acao-date '+dc+'">'+d.d+'</span></td></tr>'}).join('')+
+return '<tr><td class="td-name">'+d.n+'</td><td>'+d.f+'</td><td>'+d.e+'</td><td><span class="temp '+tc+'">'+tl+'</span></td><td style="font-size:11px">'+d.p+'</td><td style="font-size:11px;max-width:280px">'+d.s+'</td><td><span class="acao-date '+dc+'">'+d.d+'</span></td><td><button class="edit-btn" onclick="openEdit('+idx+')" title="Editar">&#9998;</button></td></tr>'}).join('')+
 '</tbody></table></div>';
 }else{document.getElementById('tabela').innerHTML=''}
 
